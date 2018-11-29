@@ -75,7 +75,23 @@ class Linear(Block):
         # TODO: Create the weight matrix (w) and bias vector (b).
 
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        """
+        Pavel done this:
+        W = out_features x in_features matrix
+        b = out_features column vector
+        y=f(xW_T + b) -> which is what?
+        """
+
+        #   Create normal distribution sampler. We will fill our tensors.
+        #   from this distribution.
+        norm_dist = torch.distributions.Normal(torch.tensor([0.0]), torch.tensor([wstd]))
+
+        #   Create the w, b tensors of given sizes.
+        #   [:,:,0] is for disabling additional dimension which is 1
+        self.w = norm_dist.sample((out_features,in_features))[:,:,0]
+        self.b = norm_dist.sample((out_features,))[:,0]
+        #print("self.w size is:",self.w.size())
+        #print("self.b size is:", self.b.size())
         # ========================
 
         self.dw = torch.zeros_like(self.w)
@@ -100,7 +116,21 @@ class Linear(Block):
         # TODO: Compute the affine transform
 
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        """
+        Pavel done this:
+        for each X_i tensor: out = X_i * w_T_i + b
+        """
+        w_T = torch.transpose(self.w, 0, 1)
+
+        #print("x", x.size())
+        #print("w_T", w_T.size())
+
+        xW_T = torch.mm(x,w_T)
+        #print("xW_T size",xW_T.size())
+        #print("b size", self.b.size())
+        b_expanded = self.b.expand_as(xW_T)
+        #print("b_expanded size", b_expanded.size())
+        out = xW_T+b_expanded
         # ========================
 
         self.grad_cache['x'] = x
@@ -119,7 +149,44 @@ class Linear(Block):
         #   - db, the gradient of the loss with respect to b
         # You should accumulate gradients in dw and db.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        """
+        Pavel done this:
+        for each X_i tensor: out = X_i * w_T_i + b
+        
+        x ----> | f() = xw+b | ----> out
+        
+        dx = dout * dout/dx  <---- | f(x) = xw+b | <---- dout
+        dw = dout * dout/dw  <---- | f(x) = xw+b | <---- dout
+        db = dout * dout/db  <---- | f(x) = xw+b | <---- dout
+        
+        thus: according to rule
+        d(aT x)/dx = d(xT a) = a
+               
+        dout/dx = d(xwT+b)/dx = wT 
+        dout/dw = d(xwT+b)/dw = x
+        dout/db = d(xwT+b)/db = 1
+        
+        thus:
+         
+        dx = dout * w
+        dw = dout * x
+        db = dout * 1
+        """
+
+        temp_dw = torch.mm(torch.transpose(dout,0,1),x)
+        temp_db = dout
+        dx = torch.mm(dout,self.w)
+
+        #print("self.dw size vs temp_dw size:",self.dw.size(),temp_dw.size())
+        #print("self.db size vs temp_db size:", self.db.size(), temp_db.size())
+        #print("dx size - should be (N, Din):",dx.size())
+
+        self.dw = self.dw + temp_dw
+
+        #   accumulate all rows of temp_db
+        for row in range(temp_db.size(0)):
+            self.db = self.db + temp_db[row]
+
         # ========================
 
         return dx
@@ -145,7 +212,12 @@ class ReLU(Block):
 
         # TODO: Implement the ReLU operation.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        """
+        Pavel done this:
+        just zero all negatives
+        """
+        out = x
+        out[out < 0] = 0
         # ========================
 
         self.grad_cache['x'] = x
@@ -160,7 +232,23 @@ class ReLU(Block):
 
         # TODO: Implement gradient w.r.t. the input x
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        """
+        Pavel done this:
+        
+        x ------> | max(0,x) | ------> out
+        
+        thus:
+        
+        dx = dout * dout/dx  <------ | max(0,x) | <------ dout
+        
+        while:
+        dout/dx = if(x<0)=0 , if(x=>0)=1 
+        
+        NOTICE: ReLU is element wise
+        """
+
+
+
         # ========================
 
         return dx
