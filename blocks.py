@@ -476,8 +476,11 @@ class Sequential(Block):
         # gradient. Behold the backpropagation algorithm in action!
         # ====== YOUR CODE: ======
         temp_dout = dout
-        for block_idx in range(self.__len__,0,-1):
-            temp_dout = self.blocks[block_idx](temp_dout)
+        #print("num of blocks = ",len(self.blocks))
+        for block_idx in range(len(self.blocks)-1,-1,-1):
+            #print("temp_dout",temp_dout)
+            #print("block_idx",block_idx)
+            temp_dout = self.blocks[block_idx].backward(temp_dout)
         din = temp_dout
         # ========================
 
@@ -489,7 +492,13 @@ class Sequential(Block):
         # TODO: Return the parameter tuples from all blocks.
         # ====== YOUR CODE: ======
         for block in self.blocks:
-            params.append(block.params())
+            #print("block.params() type",type(block.params()))
+            #print("block.params() length",len(block.params()))
+            if len(block.params()) > 1:
+                for tup in block.params():
+                    params.append(tup)
+            #else:
+                #params.append((None,None))
         # ========================
 
         return params
