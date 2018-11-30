@@ -323,7 +323,7 @@ class CrossEntropyLoss(Block):
             #print("current sample: =",curr_sample)
             curr_label = y[sample_idx]
             #print("curr_label: = ", curr_label)
-            Xy = curr_sample[curr_label[0]]
+            Xy = curr_sample[curr_label]
             #print("Xy = ",Xy)
 
             # calc log sum
@@ -354,7 +354,59 @@ class CrossEntropyLoss(Block):
 
         # TODO: Calculate the gradient w.r.t. the input x
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        """ pavel done this:
+        
+        we have this:
+        
+        x -----> | f = loss_func | -----> out
+        
+        dx = dout * dout/dx  <----- | f = loss_func | <----- dout (scalar)
+                
+        when:
+        
+        dout/dx = df/dx
+        
+        let's calc derivative of loss func:
+        we have: -Xy + log(sum Xk)
+        
+        for dXi when i=y:
+        dout/dXi = -1 + exp(Xy)/sum_k_on(exp(Xk))
+        
+        for dXi when i!=y:
+        dout/dXi = exp(Xi)/sum_k_on(exp(Xk))
+        """
+
+        #print("x size",x.size())
+        #print("y size", y.size())
+
+        dx = torch.ones_like(x)
+        dx = torch.mul(dx, dout)
+
+        for sample_idx in range(N):
+            # TODO: calc dx
+            curr_sample = x[sample_idx, :]
+
+            #print("==========================")
+            #print("sample idx: = ", sample_idx)
+            #print("current sample: =",curr_sample)
+            curr_label = y[sample_idx]
+            #print("curr_label: = ", curr_label)
+
+            # calc log sum
+            exp_vec = torch.exp(curr_sample)
+            sum_k = torch.sum(exp_vec)
+            #print("log_sum = ",log_sum)
+
+
+            for i in range(x.size(1)):
+                #print("i=",i)
+                if curr_label == i:
+                    temp_dout_dx = -1/N + torch.exp(curr_sample[i]) / (N*sum_k)
+                else:
+                    temp_dout_dx = torch.exp(curr_sample[i]) / (N*sum_k)
+                dx[sample_idx,i] = dx[sample_idx,i] * temp_dout_dx
+            #print("dx[sample_idx,:]",dx[sample_idx,:])
+        #print("dx",dx)
         # ========================
 
         return dx
