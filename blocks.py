@@ -460,7 +460,10 @@ class Sequential(Block):
         # TODO: Implement the forward pass by passing each block's output
         # as the input of the next.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        temp_input = x
+        for block in self.blocks:
+            temp_input = block.forward(temp_input)
+        out = temp_input
         # ========================
 
         return out
@@ -472,7 +475,10 @@ class Sequential(Block):
         # Each block's input gradient should be the previous block's output
         # gradient. Behold the backpropagation algorithm in action!
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        temp_dout = dout
+        for block_idx in range(self.__len__,0,-1):
+            temp_dout = self.blocks[block_idx](temp_dout)
+        din = temp_dout
         # ========================
 
         return din
@@ -482,7 +488,8 @@ class Sequential(Block):
 
         # TODO: Return the parameter tuples from all blocks.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        for block in self.blocks:
+            params.append(block.params())
         # ========================
 
         return params
