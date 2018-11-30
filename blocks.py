@@ -216,8 +216,12 @@ class ReLU(Block):
         Pavel done this:
         just zero all negatives
         """
-        out = x
-        out[out < 0] = 0
+        zeros = torch.zeros_like(x)
+        out = torch.max(x, zeros)
+
+        # this doesn't work because some gradient issues:
+        #out[out < 0] = 0
+
         # ========================
 
         self.grad_cache['x'] = x
@@ -242,13 +246,12 @@ class ReLU(Block):
         dx = dout * dout/dx  <------ | max(0,x) | <------ dout
         
         while:
-        dout/dx = if(x<0)=0 , if(x=>0)=1 
+        dout/dx = if(out<0)=0 , if(out=>0)=1 
         
         NOTICE: ReLU is element wise
         """
-
-
-
+        zeros = torch.zeros_like(dout)
+        dx = torch.max(dout, zeros)
         # ========================
 
         return dx
@@ -292,7 +295,47 @@ class CrossEntropyLoss(Block):
         # Tip: to get a different column from each row of a matrix tensor m,
         # you can index it with m[range(num_rows), list_of_cols].
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        """ 
+        pavel done this:
+        
+        X - class scores
+        loss = -Xy + log( sum on k(classes) of: exp( Xk ) )
+        
+        we have: 
+        x: Tensor of shape (N,D) where N is the batch
+        dimension, and D is the number of features.
+        
+        y: Tensor of shape (N,) containing the ground truth
+        
+        we want to get:
+        loss (scalar) of a batch?
+        """
+
+        loss = 0
+
+        for sample_idx in range(N):
+            # TODO: calc loss
+            curr_sample = x[sample_idx, :]
+
+            # calc Xy
+            #print("==========================")
+            #print("sample idx: = ", sample_idx)
+            #print("current sample: =",curr_sample)
+            curr_label = y[sample_idx]
+            #print("curr_label: = ", curr_label)
+            Xy = curr_sample[curr_label[0]]
+            #print("Xy = ",Xy)
+
+            # calc log sum
+            exp_vec = torch.exp(curr_sample)
+            log_sum = torch.log(torch.sum(exp_vec))
+            #print("log_sum = ",log_sum)
+
+            # calc loss - this is not good. We don't need sum.
+            loss = loss + (-Xy.float() + log_sum)
+        loss = loss/N
+
+
         # ========================
 
         self.grad_cache['x'] = x
