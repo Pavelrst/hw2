@@ -465,7 +465,11 @@ class Sequential(Block):
         # ====== YOUR CODE: ======
         temp_input = x
         for block in self.blocks:
-            temp_input = block.forward(temp_input)
+            if isinstance(block, CrossEntropyLoss):
+                temp_input = block.forward(temp_input,**kw)
+            else:
+                temp_input = block.forward(temp_input)
+
         out = temp_input
         # ========================
 
