@@ -81,7 +81,6 @@ class Linear(Block):
         b = out_features column vector
         y=f(xW_T + b) -> which is what?
         """
-
         #   Create normal distribution sampler. We will fill our tensors.
         #   from this distribution.
         norm_dist = torch.distributions.Normal(torch.tensor([0.0]), torch.tensor([wstd]))
@@ -90,7 +89,6 @@ class Linear(Block):
         #   [:,:,0] is for disabling additional dimension which is 1
         self.w = norm_dist.sample((out_features,in_features))[:,:,0]
         self.b = norm_dist.sample((out_features,))[:,0]
-        #print("self.w size is:",self.w.size())
         #print("self.b size is:", self.b.size())
         # ========================
 
@@ -173,6 +171,8 @@ class Linear(Block):
         db = dout * 1
         """
 
+        #print("linear dout=",dout)
+
         temp_dw = torch.mm(torch.transpose(dout,0,1),x)
         temp_db = dout
         dx = torch.mm(dout,self.w)
@@ -187,6 +187,7 @@ class Linear(Block):
         for row in range(temp_db.size(0)):
             self.db = self.db + temp_db[row]
 
+        #print("Linear dx=",dx)
         # ========================
 
         return dx
@@ -250,8 +251,10 @@ class ReLU(Block):
         
         NOTICE: ReLU is element wise
         """
-        zeros = torch.zeros_like(dout)
-        dx = torch.max(dout, zeros)
+        dout_dx = (x >= 0).float()
+        dx = torch.mul(dout, dout_dx)
+
+        #print("Relu dx=:",dx)
         # ========================
 
         return dx
@@ -476,10 +479,7 @@ class Sequential(Block):
         # gradient. Behold the backpropagation algorithm in action!
         # ====== YOUR CODE: ======
         temp_dout = dout
-        #print("num of blocks = ",len(self.blocks))
         for block_idx in range(len(self.blocks)-1,-1,-1):
-            #print("temp_dout",temp_dout)
-            #print("block_idx",block_idx)
             temp_dout = self.blocks[block_idx].backward(temp_dout)
         din = temp_dout
         # ========================
@@ -491,14 +491,19 @@ class Sequential(Block):
 
         # TODO: Return the parameter tuples from all blocks.
         # ====== YOUR CODE: ======
+        """
         for block in self.blocks:
             #print("block.params() type",type(block.params()))
             #print("block.params() length",len(block.params()))
             if len(block.params()) > 1:
                 for tup in block.params():
-                    params.append(tup)
-            #else:
-                #params.append((None,None))
+                    append(tup)
+        #params.reverse()
+        """
+        # Concat params lists.
+        for block in self.blocks:
+            params = params + block.params()
+
         # ========================
 
         return params
