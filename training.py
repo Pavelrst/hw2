@@ -109,6 +109,21 @@ class Trainer(abc.ABC):
         :return: A BatchResult containing the value of the loss function and
             the number of correctly classified samples in the batch.
         """
+
+        # TODO: do we need to spilt the batch to x,y?
+
+        # TODO: run a single batch forward
+        self.model.train(True)  # set train mode
+        self.model.forward(batch)
+
+        # TODO: calc the loss
+        # use CrossEntropyLoss block - self.loss_fn
+
+        # TODO: run backward
+        # what is dout to feed from the end? 
+
+        # TODO: use optimizer to update the weights
+        # use self.optimizer = optimizer
         raise NotImplementedError()
 
     @abc.abstractmethod
