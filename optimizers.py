@@ -90,8 +90,8 @@ class VanillaSGD(Optimizer):
             # I think this is the grad update and step,
             # but I can't check it, because the param array
             # can't be updated. How to do this?!
-            grad = dp.sub(2*self.reg) # not sure is sub or add?!
-            p = p - torch.mul(grad,self.learn_rate)
+            dp += p*self.reg # not sure is sub or add?!
+            p += -dp*self.learn_rate
 
             # ========================
 
