@@ -121,14 +121,14 @@ class ConvClassifier(nn.Module):
         P = self.pool_every # num of conv layers before each pooling.
         N_P = int(N/P) # num of (Conv -> ReLU)*P -> MaxPool in total.
 
-        print("N(num of conv layers in total)=",N)
+        #print("N(num of conv layers in total)=",N)
         # print("P(num of conv layers before each pooling.)=",P)
         # print("N_P(num of (Conv -> ReLU)*P -> MaxPool)=",N_P)
         # TODO: iterate over pooling layers
         # TODO: for each pool, iterate over conv layers for this pool
         # TODO: add all those layers to layers list.
 
-        print("input shape(Ch,H,W) = (",in_channels,",",in_h,",",in_w,")")
+        #print("input shape(Ch,H,W) = (",in_channels,",",in_h,",",in_w,")")
 
         # save all dimensions for further usage
         curr_H_in = in_h
@@ -143,33 +143,34 @@ class ConvClassifier(nn.Module):
             for conv_idx in range(P):
                 kernel_size = 3 # 3x3
                 stride = 1
-                padding = 0
+                padding = 1
                 dilation = 1
 
                 # calc dimension of output tensor
                 out_channels = self.filters[filters_list_idx] # as num of filters
                 H_out = int((curr_H_in + 2 * padding - dilation * (kernel_size - 1) - 1) / stride) + 1
                 W_out = int((curr_W_in + 2 * padding - dilation * (kernel_size - 1) - 1) / stride) + 1
-                curr_H_in = H_out
-                curr_W_in = W_out
                 curr_dim = (out_channels,H_out,W_out)
                 dims_list.append(curr_dim)
+                curr_H_in = H_out
+                curr_W_in = W_out
 
                 # Conv2d(in_channels, out_channels, kernel_size, stride=1, padding=0, ...)
                 conv = nn.Conv2d(curr_in_channels,out_channels,kernel_size,stride,padding)
-                print("adding conv layer. out dim = ",curr_dim)
+                #print("adding conv layer. in channels = ",curr_in_channels," out dim = ",curr_dim)
                 curr_in_channels = out_channels
                 layers.append(conv)
-                print("adding RELU layer")
-                relu = nn.ReLU()
-                layers.append(conv)
+                #print("adding RELU layer")
+                layers.append(nn.ReLU())
                 filters_list_idx+=1
 
-
-            curr_dim = (out_channels, int(H_out/2), int(W_out/2))
+            H_out = int(H_out/2)
+            W_out = int(W_out/2)
+            curr_dim = (out_channels, H_out, W_out)
             dims_list.append(curr_dim)
-
-            print("adding Maxpool layer. out dim = ",curr_dim)
+            curr_H_in = H_out
+            curr_W_in = W_out
+            #print("adding Maxpool layer. out dim = ",curr_dim)
             pool = nn.MaxPool2d(kernel_size=2, stride=2)
             layers.append(pool)
         self.dim_list = dims_list
@@ -193,13 +194,14 @@ class ConvClassifier(nn.Module):
         #TODO: calc in features
         ch,h,w = self.dim_list[-1]
         in_features = ch*h*w
-        print("in fetures of classifier is",in_features)
+        #print("in fetures of classifier is",in_features)
 
-        lin1 = nn.Linear(in_features, 120),
-        relu1 = nn.ReLU(),
-        lin2 = nn.Linear(120, 84),
-        relu2 = nn.ReLU(),
-        lin_out = nn.Linear(84, self.out_classes)
+        layers.append(nn.Linear(in_features, self.hidden_dims[0]))
+        layers.append(nn.ReLU())
+        for curr_dim_idx in range(len(self.hidden_dims)-1):
+            layers.append(nn.Linear(self.hidden_dims[curr_dim_idx], self.hidden_dims[curr_dim_idx+1]))
+            layers.append(nn.ReLU())
+        layers.append(nn.Linear(self.hidden_dims[-1], self.out_classes))
         # ========================
         seq = nn.Sequential(*layers)
         return seq
@@ -209,7 +211,12 @@ class ConvClassifier(nn.Module):
         # Extract features from the input, run the classifier on them and
         # return class scores.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        #print("x shape =",x.size())
+        features = self.feature_extractor(x)
+        #print("features shape =", features.size())
+        features = features.view(features.size(0), -1)
+        #print("features shape =", features.size())
+        out = self.classifier(features)
         # ========================
         return out
 
