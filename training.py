@@ -271,7 +271,17 @@ class TorchTrainer(Trainer):
             # - Forward pass
             # - Calculate number of correct predictions
             # ====== YOUR CODE: ======
-            raise NotImplementedError()
+            outputs = self.model.forward(X)
+            loss = self.loss_fn(outputs, y).item()
+
+            softmax = torch.nn.Softmax(1)
+            my_res = softmax(outputs)
+            my_cl = torch.max(my_res, 1)[1]
+
+            num_correct = 0
+            for idx in range(my_cl.size(0)):
+                if my_cl[idx] == y[idx]:
+                    num_correct += 1
             # ========================
 
         return BatchResult(loss, num_correct)

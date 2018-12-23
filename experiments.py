@@ -15,8 +15,9 @@ from cs236605.train_results import FitResult
 from . import models
 from . import training
 
-DATA_DIR = os.path.join(os.getenv('HOME'), '.pytorch-datasets')
-
+#DATA_DIR = os.path.join(os.getenv('HOME'), '.pytorch-datasets')
+from pathlib import Path
+DATA_DIR = os.path.join(str(Path.home()), '.pytorch-datasets')
 
 def run_experiment(run_name, out_dir='./results', seed=None,
                    # Training params
@@ -56,7 +57,33 @@ def run_experiment(run_name, out_dir='./results', seed=None,
     #  for you automatically.
     fit_res = None
     # ====== YOUR CODE: ======
-    raise NotImplementedError()
+
+    # calc in_size, out_classes, filters
+    filters = []
+    for f in filters_per_layer:
+        filters = filters + [f] * layers_per_block
+    in_size = tuple(ds_train[0][0].size())
+    out_classes = 10
+
+    model = model_cls(in_size, out_classes, filters, pool_every, hidden_dims)
+
+    print("create loss function.")
+    loss_fn = torch.nn.CrossEntropyLoss()
+
+    print("create optimzer")
+    optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
+
+    print("create trainer")
+    trainer = training.TorchTrainer(model, loss_fn, optimizer)
+
+    print("create dataloaders")
+    train_sampler = torch.utils.data.sampler.RandomSampler(data_source=ds_train)
+    dl_train = torch.utils.data.DataLoader(ds_train, batch_size=bs_train,sampler=train_sampler)
+    dl_test = torch.utils.data.DataLoader(ds_test)
+
+    print("fit model")
+    fit_res = trainer.fit(dl_train, dl_test, epochs, None, early_stopping, print_every=1, **kw)
+
     # ========================
 
     save_experiment(run_name, out_dir, cfg, fit_res)
@@ -80,7 +107,8 @@ def load_experiment(filename):
         output = json.load(f)
 
     config = output['config']
-    fit_res = FitResult(**output['results'])
+    #fit_res = FitResult(**output['results'])
+    fit_res = FitResult(*output['results'])
 
     return config, fit_res
 
