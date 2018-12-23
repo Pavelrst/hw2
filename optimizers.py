@@ -63,6 +63,7 @@ class VanillaSGD(Optimizer):
         self.reg = reg
 
     def step(self):
+        
         for p, dp in self.params:
             if dp is None:
                 continue
@@ -71,28 +72,14 @@ class VanillaSGD(Optimizer):
             # Update the gradient according to regularization and then
             # update the parameters tensor.
             # ====== YOUR CODE: ======
-            """
-            pavel done this:
-            Update the gradient according to regularization
-            Grad <-- Grad + 2 * lambda * W
-            
-            W <--- W - step * Grad
-            """
-
-            # TODO: there is a problem with updating the params tensor
-            # TODO: we need to update the input parameter of a class.
-            # TODO: see the test in Jupyter notebook to understand the issue.
-            # TODO: how it's done in python?
-
-            # TODO: "params" is an array - If you pass in an array and change it's
-            # TODO: contents that will be reflected wherever else it is referenced
-
-            # I think this is the grad update and step,
-            # but I can't check it, because the param array
-            # can't be updated. How to do this?!
-            dp += p*self.reg # not sure is sub or add?!
-            p += -dp*self.learn_rate
-
+            #dp += self.reg*p*2
+#             print("before")
+#             print(self.params[0])
+            dp += self.reg*p
+            #tmp = dp + self.reg*2*p
+            p +=  -self.learn_rate*dp
+#             print("After")
+#             print(self.params[0])
             # ========================
 
 

@@ -109,21 +109,6 @@ class Trainer(abc.ABC):
         :return: A BatchResult containing the value of the loss function and
             the number of correctly classified samples in the batch.
         """
-
-        # TODO: do we need to spilt the batch to x,y?
-
-        # TODO: run a single batch forward
-        self.model.train(True)  # set train mode
-        self.model.forward(batch)
-
-        # TODO: calc the loss
-        # use CrossEntropyLoss block - self.loss_fn
-
-        # TODO: run backward
-        # what is dout to feed from the end? 
-
-        # TODO: use optimizer to update the weights
-        # use self.optimizer = optimizer
         raise NotImplementedError()
 
     @abc.abstractmethod
@@ -203,7 +188,32 @@ class BlocksTrainer(Trainer):
         # - Optimize params
         # - Calculate number of correct predictions
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        # ====== YOUR CODE: ======
+        self.optimizer.zero_grad()
+#         print(self.optimizer.params[0][1])
+#        print(self.model.params())
+        pred=self.model.forward(X) #current predictions
+#         loss=self.loss_fn.forward(pred,y)
+#         grad=self.loss_fn.backward(loss)
+        loss=self.loss_fn.forward(pred,y)
+        din=self.model.backward(pred)
+#         print(self.optimizer.params[0][1])
+#         self.model.backward(grad)
+        self.optimizer.step()
+        
+
+        
+        # calculate number of correct predictions
+        
+        pred_labels=torch.argmax(pred,dim=1)
+        eq_veq=torch.eq(y,pred_labels)
+        num_correct=torch.sum(eq_veq)
+        
+        
+        # ========================
+        
+        
+        
         # ========================
 
         return BatchResult(loss, num_correct)

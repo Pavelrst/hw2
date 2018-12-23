@@ -7,6 +7,7 @@ class Block(abc.ABC):
     A block is some computation element in a network architecture which
     supports automatic differentiation using forward and backward functions.
     """
+
     def __init__(self):
         # Store intermediate values needed to compute gradients in this hash
         self.grad_cache = {}
@@ -75,21 +76,12 @@ class Linear(Block):
         # TODO: Create the weight matrix (w) and bias vector (b).
 
         # ====== YOUR CODE: ======
-        """
-        Pavel done this:
-        W = out_features x in_features matrix
-        b = out_features column vector
-        y=f(xW_T + b) -> which is what?
-        """
-        #   Create normal distribution sampler. We will fill our tensors.
-        #   from this distribution.
-        norm_dist = torch.distributions.Normal(torch.tensor([0.0]), torch.tensor([wstd]))
+#         print(wstd)
+        self.w = torch.zeros(out_features, in_features)
+        self.w.normal_(mean=0, std=wstd)
 
-        #   Create the w, b tensors of given sizes.
-        #   [:,:,0] is for disabling additional dimension which is 1
-        self.w = norm_dist.sample((out_features,in_features))[:,:,0]
-        self.b = norm_dist.sample((out_features,))[:,0]
-        #print("self.b size is:", self.b.size())
+        self.b = torch.zeros(out_features)
+        self.b.normal_(mean=0, std=wstd)
         # ========================
 
         self.dw = torch.zeros_like(self.w)
@@ -110,25 +102,10 @@ class Linear(Block):
         """
 
         x = x.reshape((x.shape[0], -1))
-
         # TODO: Compute the affine transform
 
         # ====== YOUR CODE: ======
-        """
-        Pavel done this:
-        for each X_i tensor: out = X_i * w_T_i + b
-        """
-        w_T = torch.transpose(self.w, 0, 1)
-
-        #print("x", x.size())
-        #print("w_T", w_T.size())
-
-        xW_T = torch.mm(x,w_T)
-        #print("xW_T size",xW_T.size())
-        #print("b size", self.b.size())
-        b_expanded = self.b.expand_as(xW_T)
-        #print("b_expanded size", b_expanded.size())
-        out = xW_T+b_expanded
+        out = torch.mm(x, torch.t(self.w)) + self.b
         # ========================
 
         self.grad_cache['x'] = x
@@ -147,47 +124,11 @@ class Linear(Block):
         #   - db, the gradient of the loss with respect to b
         # You should accumulate gradients in dw and db.
         # ====== YOUR CODE: ======
-        """
-        Pavel done this:
-        for each X_i tensor: out = X_i * w_T_i + b
+        dx = torch.mm(dout, self.w)
+        self.dw = torch.t(torch.mm(torch.t(x), dout))
+        self.db = torch.sum(torch.t(dout), dim=1)
         
-        x ----> | f() = xw+b | ----> out
         
-        dx = dout * dout/dx  <---- | f(x) = xw+b | <---- dout
-        dw = dout * dout/dw  <---- | f(x) = xw+b | <---- dout
-        db = dout * dout/db  <---- | f(x) = xw+b | <---- dout
-        
-        thus: according to rule
-        d(aT x)/dx = d(xT a) = a
-               
-        dout/dx = d(xwT+b)/dx = wT 
-        dout/dw = d(xwT+b)/dw = x
-        dout/db = d(xwT+b)/db = 1
-        
-        thus:
-         
-        dx = dout * w
-        dw = dout * x
-        db = dout * 1
-        """
-
-        #print("linear dout=",dout)
-
-        temp_dw = torch.mm(torch.transpose(dout,0,1),x)
-        temp_db = dout
-        dx = torch.mm(dout,self.w)
-
-        #print("self.dw size vs temp_dw size:",self.dw.size(),temp_dw.size())
-        #print("self.db size vs temp_db size:", self.db.size(), temp_db.size())
-        #print("dx size - should be (N, Din):",dx.size())
-
-        self.dw = self.dw + temp_dw
-
-        #   accumulate all rows of temp_db
-        for row in range(temp_db.size(0)):
-            self.db = self.db + temp_db[row]
-
-        #print("Linear dx=",dx)
         # ========================
 
         return dx
@@ -200,6 +141,7 @@ class ReLU(Block):
     """
     Rectified linear unit.
     """
+
     def __init__(self):
         super().__init__()
 
@@ -213,16 +155,12 @@ class ReLU(Block):
 
         # TODO: Implement the ReLU operation.
         # ====== YOUR CODE: ======
-        """
-        Pavel done this:
-        just zero all negatives
-        """
-        zeros = torch.zeros_like(x)
-        out = torch.max(x, zeros)
-
-        # this doesn't work because some gradient issues:
-        #out[out < 0] = 0
-
+#         for key, value in kw.items():
+#         print("relU")
+#             print(key)
+#             print (value)
+        mask = (x>=0).float()
+        out = torch.mul(x,mask)
         # ========================
 
         self.grad_cache['x'] = x
@@ -237,24 +175,8 @@ class ReLU(Block):
 
         # TODO: Implement gradient w.r.t. the input x
         # ====== YOUR CODE: ======
-        """
-        Pavel done this:
-        
-        x ------> | max(0,x) | ------> out
-        
-        thus:
-        
-        dx = dout * dout/dx  <------ | max(0,x) | <------ dout
-        
-        while:
-        dout/dx = if(out<0)=0 , if(out=>0)=1 
-        
-        NOTICE: ReLU is element wise
-        """
-        dout_dx = (x >= 0).float()
-        dx = torch.mul(dout, dout_dx)
-
-        #print("Relu dx=:",dx)
+        dx = (x >= 0).float()
+        dx = torch.mul(dout,dx)
         # ========================
 
         return dx
@@ -298,47 +220,11 @@ class CrossEntropyLoss(Block):
         # Tip: to get a different column from each row of a matrix tensor m,
         # you can index it with m[range(num_rows), list_of_cols].
         # ====== YOUR CODE: ======
-        """ 
-        pavel done this:
         
-        X - class scores
-        loss = -Xy + log( sum on k(classes) of: exp( Xk ) )
+        sum = torch.log(torch.sum(torch.exp(x),dim=1))
+        loss = sum - x[range(N),y]
+        loss =  torch.sum(loss) / N
         
-        we have: 
-        x: Tensor of shape (N,D) where N is the batch
-        dimension, and D is the number of features.
-        
-        y: Tensor of shape (N,) containing the ground truth
-        
-        we want to get:
-        loss (scalar) of a batch?
-        """
-
-        loss = 0
-
-        for sample_idx in range(N):
-            # TODO: calc loss
-            curr_sample = x[sample_idx, :]
-
-            # calc Xy
-            #print("==========================")
-            #print("sample idx: = ", sample_idx)
-            #print("current sample: =",curr_sample)
-            curr_label = y[sample_idx]
-            #print("curr_label: = ", curr_label)
-            Xy = curr_sample[curr_label]
-            #print("Xy = ",Xy)
-
-            # calc log sum
-            exp_vec = torch.exp(curr_sample)
-            log_sum = torch.log(torch.sum(exp_vec))
-            #print("log_sum = ",log_sum)
-
-            # calc loss - this is not good. We don't need sum.
-            loss = loss + (-Xy.float() + log_sum)
-        loss = loss/N
-
-
         # ========================
 
         self.grad_cache['x'] = x
@@ -357,59 +243,16 @@ class CrossEntropyLoss(Block):
 
         # TODO: Calculate the gradient w.r.t. the input x
         # ====== YOUR CODE: ======
-        """ pavel done this:
         
-        we have this:
+        dx = torch.exp(x)
+        sum = torch.sum(dx ,dim=1).reshape(-1,1)
+    
+        dx /= sum
+        dx[range(N),y] -= 1 
         
-        x -----> | f = loss_func | -----> out
-        
-        dx = dout * dout/dx  <----- | f = loss_func | <----- dout (scalar)
-                
-        when:
-        
-        dout/dx = df/dx
-        
-        let's calc derivative of loss func:
-        we have: -Xy + log(sum Xk)
-        
-        for dXi when i=y:
-        dout/dXi = -1 + exp(Xy)/sum_k_on(exp(Xk))
-        
-        for dXi when i!=y:
-        dout/dXi = exp(Xi)/sum_k_on(exp(Xk))
-        """
-
-        #print("x size",x.size())
-        #print("y size", y.size())
-
-        dx = torch.ones_like(x)
-        dx = torch.mul(dx, dout)
-
-        for sample_idx in range(N):
-            # TODO: calc dx
-            curr_sample = x[sample_idx, :]
-
-            #print("==========================")
-            #print("sample idx: = ", sample_idx)
-            #print("current sample: =",curr_sample)
-            curr_label = y[sample_idx]
-            #print("curr_label: = ", curr_label)
-
-            # calc log sum
-            exp_vec = torch.exp(curr_sample)
-            sum_k = torch.sum(exp_vec)
-            #print("log_sum = ",log_sum)
-
-
-            for i in range(x.size(1)):
-                #print("i=",i)
-                if curr_label == i:
-                    temp_dout_dx = -1/N + torch.exp(curr_sample[i]) / (N*sum_k)
-                else:
-                    temp_dout_dx = torch.exp(curr_sample[i]) / (N*sum_k)
-                dx[sample_idx,i] = dx[sample_idx,i] * temp_dout_dx
-            #print("dx[sample_idx,:]",dx[sample_idx,:])
-        #print("dx",dx)
+        dx *= dout
+        dx = dx/N
+        #print('after=',dx[range(N),y])
         # ========================
 
         return dx
@@ -453,6 +296,7 @@ class Sequential(Block):
     """
     A Block that passes input through a sequence of other blocks.
     """
+
     def __init__(self, *blocks):
         super().__init__()
         self.blocks = blocks
@@ -463,14 +307,13 @@ class Sequential(Block):
         # TODO: Implement the forward pass by passing each block's output
         # as the input of the next.
         # ====== YOUR CODE: ======
-        temp_input = x
-        for block in self.blocks:
-            if isinstance(block, CrossEntropyLoss):
-                temp_input = block.forward(temp_input,**kw)
+        for b in self.blocks:
+            #print(b)
+            if isinstance(b, CrossEntropyLoss):
+                x = b.forward(x, **kw)
             else:
-                temp_input = block.forward(temp_input)
-
-        out = temp_input
+                x = b.forward(x, **kw)
+        out = x
         # ========================
 
         return out
@@ -481,11 +324,10 @@ class Sequential(Block):
         # TODO: Implement the backward pass.
         # Each block's input gradient should be the previous block's output
         # gradient. Behold the backpropagation algorithm in action!
-        # ====== YOUR CODE: ======
-        temp_dout = dout
-        for block_idx in range(len(self.blocks)-1,-1,-1):
-            temp_dout = self.blocks[block_idx].backward(temp_dout)
-        din = temp_dout
+        # ====== YOUR CODE: ====== 
+        for b in reversed(self.blocks):
+            dout = b.backward((dout))
+        din = dout
         # ========================
 
         return din
@@ -495,19 +337,9 @@ class Sequential(Block):
 
         # TODO: Return the parameter tuples from all blocks.
         # ====== YOUR CODE: ======
-        """
-        for block in self.blocks:
-            #print("block.params() type",type(block.params()))
-            #print("block.params() length",len(block.params()))
-            if len(block.params()) > 1:
-                for tup in block.params():
-                    append(tup)
-        #params.reverse()
-        """
-        # Concat params lists.
-        for block in self.blocks:
-            params = params + block.params()
-
+        for b in self.blocks:
+            for t in b.params():
+                params.append(t)
         # ========================
 
         return params
