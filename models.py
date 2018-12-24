@@ -45,7 +45,7 @@ class MLP(Block):
             blocks.append(Linear(in_block,h,**kw))
             blocks.append(ReLU())
             in_block = h
-        blocks.append(Linear(in_block,num_classes,value))
+        blocks.append(Linear(in_block,num_classes,**kw))
         
 
         
@@ -80,8 +80,8 @@ class ConvClassifier(nn.Module):
         """
         :param in_size: Size of input images, e.g. (C,H,W).
         :param out_classes: Number of classes to output in the final layer.
-        :param filters: .A list of of length N containing the number of
-            filters in each conv layer
+        :param filters: A list of of length N containing the number of
+            filters in each conv layer.
         :param pool_every: P, the number of conv layers before each max-pool.
         :param hidden_dims: List of of length M containing hidden dimensions of
             each Linear layer (not including the output layer).
@@ -105,67 +105,7 @@ class ConvClassifier(nn.Module):
         # Use only dimension-preserving 3x3 convolutions. Apply 2x2 Max
         # Pooling to reduce dimensions.
         # ====== YOUR CODE: ======
-
-        #TODO: pool_every = P = the number of conv layers before each max-pool
-        N = len(self.filters) # num of conv layers in total.
-        P = self.pool_every # num of conv layers before each pooling.
-        N_P = int(N/P) # num of (Conv -> ReLU)*P -> MaxPool in total.
-
-        #print("N(num of conv layers in total)=",N)
-        # print("P(num of conv layers before each pooling.)=",P)
-        # print("N_P(num of (Conv -> ReLU)*P -> MaxPool)=",N_P)
-        # TODO: iterate over pooling layers
-        # TODO: for each pool, iterate over conv layers for this pool
-        # TODO: add all those layers to layers list.
-
-        #print("input shape(Ch,H,W) = (",in_channels,",",in_h,",",in_w,")")
-
-        # save all dimensions for further usage
-        curr_H_in = in_h
-        curr_W_in = in_w
-        curr_dim = (in_channels, in_h, in_w)
-        dims_list = []
-        dims_list.append(curr_dim)
-
-        filters_list_idx = 0
-        curr_in_channels = in_channels
-        for pool_idx in range(N_P):
-            for conv_idx in range(P):
-                kernel_size = 3 # 3x3
-                stride = 1
-                padding = 1
-                dilation = 1
-
-                # calc dimension of output tensor
-                out_channels = self.filters[filters_list_idx] # as num of filters
-                H_out = int((curr_H_in + 2 * padding - dilation * (kernel_size - 1) - 1) / stride) + 1
-                W_out = int((curr_W_in + 2 * padding - dilation * (kernel_size - 1) - 1) / stride) + 1
-                curr_dim = (out_channels,H_out,W_out)
-                dims_list.append(curr_dim)
-                curr_H_in = H_out
-                curr_W_in = W_out
-
-                # Conv2d(in_channels, out_channels, kernel_size, stride=1, padding=0, ...)
-                conv = nn.Conv2d(curr_in_channels,out_channels,kernel_size,stride,padding)
-                #print("adding conv layer. in channels = ",curr_in_channels," out dim = ",curr_dim)
-                curr_in_channels = out_channels
-                layers.append(conv)
-                #print("adding RELU layer")
-                layers.append(nn.ReLU())
-                filters_list_idx+=1
-
-            H_out = int(H_out/2)
-            W_out = int(W_out/2)
-            curr_dim = (out_channels, H_out, W_out)
-            dims_list.append(curr_dim)
-            curr_H_in = H_out
-            curr_W_in = W_out
-            #print("adding Maxpool layer. out dim = ",curr_dim)
-            pool = nn.MaxPool2d(kernel_size=2, stride=2)
-            layers.append(pool)
-        self.dim_list = dims_list
-
-            
+        raise NotImplementedError()
 
         # ========================
         seq = nn.Sequential(*layers)
@@ -180,18 +120,7 @@ class ConvClassifier(nn.Module):
         # You'll need to calculate the number of features first.
         # The last Linear layer should have an output dimension of out_classes.
         # ====== YOUR CODE: ======
-
-        #TODO: calc in features
-        ch,h,w = self.dim_list[-1]
-        in_features = ch*h*w
-        #print("in fetures of classifier is",in_features)
-
-        layers.append(nn.Linear(in_features, self.hidden_dims[0]))
-        layers.append(nn.ReLU())
-        for curr_dim_idx in range(len(self.hidden_dims)-1):
-            layers.append(nn.Linear(self.hidden_dims[curr_dim_idx], self.hidden_dims[curr_dim_idx+1]))
-            layers.append(nn.ReLU())
-        layers.append(nn.Linear(self.hidden_dims[-1], self.out_classes))
+        raise NotImplementedError()
         # ========================
         seq = nn.Sequential(*layers)
         return seq
@@ -201,12 +130,7 @@ class ConvClassifier(nn.Module):
         # Extract features from the input, run the classifier on them and
         # return class scores.
         # ====== YOUR CODE: ======
-        #print("x shape =",x.size())
-        features = self.feature_extractor(x)
-        #print("features shape =", features.size())
-        features = features.view(features.size(0), -1)
-        #print("features shape =", features.size())
-        out = self.classifier(features)
+        raise NotImplementedError()
         # ========================
         return out
 
