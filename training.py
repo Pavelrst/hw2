@@ -57,6 +57,8 @@ class Trainer(abc.ABC):
 
         best_acc = None
         epochs_without_improvement = 0
+        import math
+        prev_loss = math.inf
 
         for epoch in range(num_epochs):
             verbose = False  # pass this to train/test_epoch.
@@ -72,7 +74,46 @@ class Trainer(abc.ABC):
             # - Optional: Implement early stopping. This is a very useful and
             #   simple regularization technique that is highly recommended.
             # ====== YOUR CODE: ======
-            raise NotImplementedError()
+            actual_num_epochs+=1
+
+            # training
+            #train_epoch_res = self.train_epoch(dl_train, ** kw,verbose=verbose,max_batches=10)
+            train_epoch_res = self.train_epoch(dl_train, **kw, verbose=verbose)
+
+            curr_epoch_train_loss = []
+            for loss in train_epoch_res[0]:
+                curr_epoch_train_loss.append(loss.item())
+            curr_avg_train_loss = sum(curr_epoch_train_loss)/len(curr_epoch_train_loss)
+            train_loss.append(curr_avg_train_loss)
+            train_acc.append(train_epoch_res[1])
+
+            # testing
+            #test_epoch_res = self.test_epoch(dl_test, ** kw,verbose=verbose,max_batches=10)
+            test_epoch_res = self.test_epoch(dl_test, **kw, verbose=verbose)
+            test_loss.append(sum(test_epoch_res[0])/len(test_epoch_res[0]))
+            test_acc.append(test_epoch_res[1])
+
+            # best acc:
+            curr_acc = test_epoch_res[1]
+            if best_acc < curr_acc:
+                best_acc = curr_acc
+
+            # Early stopping
+            # average loss of epoch?
+            curr_loss = sum(test_epoch_res[0]) / len(test_epoch_res[0])
+            if curr_loss >= prev_loss:
+                epochs_without_improvement=0
+            else:
+                epochs_without_improvement+=1
+            prev_loss = curr_loss
+            if epochs_without_improvement == early_stopping:
+                print("Early stopping!!!")
+                break
+
+            #print("train loss:",train_loss)
+            #print("test loss:", test_loss)
+            #print("train acc:",train_acc)
+            #print("test acc:",test_acc)
             # ========================
 
         return FitResult(actual_num_epochs,
