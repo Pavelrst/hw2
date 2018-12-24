@@ -67,21 +67,21 @@ def run_experiment(run_name, out_dir='./results', seed=None,
 
     model = model_cls(in_size, out_classes, filters, pool_every, hidden_dims)
 
-    print("create loss function.")
+    #print("create loss function.")
     loss_fn = torch.nn.CrossEntropyLoss()
 
-    print("create optimzer")
+    #print("create optimzer")
     optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
 
-    print("create trainer")
+    #print("create trainer")
     trainer = training.TorchTrainer(model, loss_fn, optimizer)
 
-    print("create dataloaders")
+    #print("create dataloaders")
     train_sampler = torch.utils.data.sampler.RandomSampler(data_source=ds_train)
     dl_train = torch.utils.data.DataLoader(ds_train, batch_size=bs_train,sampler=train_sampler)
     dl_test = torch.utils.data.DataLoader(ds_test)
 
-    print("fit model")
+    #print("fit model")
     fit_res = trainer.fit(dl_train, dl_test, epochs, None, early_stopping, print_every=1, **kw)
 
     # ========================
@@ -107,8 +107,8 @@ def load_experiment(filename):
         output = json.load(f)
 
     config = output['config']
-    #fit_res = FitResult(**output['results'])
-    fit_res = FitResult(*output['results'])
+    fit_res = FitResult(**output['results'])
+
 
     return config, fit_res
 
