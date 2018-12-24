@@ -195,8 +195,10 @@ class BlocksTrainer(Trainer):
         pred=self.model.forward(X) #current predictions
 #         loss=self.loss_fn.forward(pred,y)
 #         grad=self.loss_fn.backward(loss)
-        loss=self.loss_fn.forward(pred,y)
-        din=self.model.backward(pred)
+#         din=self.model.backward(pred)
+        loss=self.loss_fn(pred,y)
+        self.loss_fn.backward()
+        
 #         print(self.optimizer.params[0][1])
 #         self.model.backward(grad)
         self.optimizer.step()
@@ -247,25 +249,7 @@ class TorchTrainer(Trainer):
         # - Optimize params
         # - Calculate number of correct predictions
         # ====== YOUR CODE: ======
-
-        # zero the parameter gradients
-        self.optimizer.zero_grad()
-
-        # forward + backward + optimize
-        outputs = self.model.forward(X)
-        loss = self.loss_fn(outputs, y)
-        loss.backward()
-        self.optimizer.step()
-
-        softmax = torch.nn.Softmax(1)
-        my_res = softmax(outputs)
-        my_cl = torch.max(my_res,1)[1]
-
-        num_correct = 0
-        for idx in range(my_cl.size(0)):
-            if my_cl[idx] == y[idx]:
-                num_correct+=1
-
+        raise NotImplementedError()
         # ========================
 
         return BatchResult(loss, num_correct)
@@ -281,17 +265,7 @@ class TorchTrainer(Trainer):
             # - Forward pass
             # - Calculate number of correct predictions
             # ====== YOUR CODE: ======
-            outputs = self.model.forward(X)
-            loss = self.loss_fn(outputs, y).item()
-
-            softmax = torch.nn.Softmax(1)
-            my_res = softmax(outputs)
-            my_cl = torch.max(my_res, 1)[1]
-
-            num_correct = 0
-            for idx in range(my_cl.size(0)):
-                if my_cl[idx] == y[idx]:
-                    num_correct += 1
+            raise NotImplementedError()
             # ========================
 
         return BatchResult(loss, num_correct)
