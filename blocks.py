@@ -106,6 +106,7 @@ class Linear(Block):
 
         # ====== YOUR CODE: ======
         out = torch.mm(x, torch.t(self.w)) + self.b
+#         out = torch.mm(x, **kw) + self.b
         # ========================
 
         self.grad_cache['x'] = x
