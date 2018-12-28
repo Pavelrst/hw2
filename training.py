@@ -74,46 +74,29 @@ class Trainer(abc.ABC):
             # - Optional: Implement early stopping. This is a very useful and
             #   simple regularization technique that is highly recommended.
             # ====== YOUR CODE: ======
-            actual_num_epochs+=1
+            train_res = self.train_epoch(dl_train, **kw)
+            train_loss.append(torch.stack(train_res.losses).sum().item() / len(dl_train))
+            train_acc.append(train_res.accuracy.item())
 
-            # training
-            #train_epoch_res = self.train_epoch(dl_train, ** kw,verbose=verbose,max_batches=10)
-            train_epoch_res = self.train_epoch(dl_train, **kw, verbose=verbose)
+            # Test
+            test_res = self.test_epoch(dl_test, **kw)
+            test_loss.append(torch.stack(test_res.losses).sum().item() / len(dl_train))
+            test_acc.append(test_res.accuracy.item())
 
-            curr_epoch_train_loss = []
-            for loss in train_epoch_res[0]:
-                curr_epoch_train_loss.append(loss.item())
-            curr_avg_train_loss = sum(curr_epoch_train_loss)/len(curr_epoch_train_loss)
-            train_loss.append(curr_avg_train_loss)
-            train_acc.append(train_epoch_res[1])
+            if best_acc is None or best_acc < test_acc[-1]:
+                best_acc = test_acc[-1]
 
-            # testing
-            #test_epoch_res = self.test_epoch(dl_test, ** kw,verbose=verbose,max_batches=10)
-            test_epoch_res = self.test_epoch(dl_test, **kw, verbose=verbose)
-            test_loss.append(sum(test_epoch_res[0])/len(test_epoch_res[0]))
-            test_acc.append(test_epoch_res[1])
+                # Checkpoint
+                if checkpoints is not None:
+                    torch.save(self.model.params, checkpoints)
 
-            # best acc:
-            curr_acc = test_epoch_res[1]
-            if best_acc < curr_acc:
-                best_acc = curr_acc
-
-            # Early stopping
-            # average loss of epoch?
-            curr_loss = sum(test_epoch_res[0]) / len(test_epoch_res[0])
-            if curr_loss >= prev_loss:
-                epochs_without_improvement=0
+                # Early stopping
+                epochs_without_improvement = 0
             else:
-                epochs_without_improvement+=1
-            prev_loss = curr_loss
-            if epochs_without_improvement == early_stopping:
-                print("Early stopping!!!")
-                break
+                epochs_without_improvement += 1
 
-            #print("train loss:",train_loss)
-            #print("test loss:", test_loss)
-            #print("train acc:",train_acc)
-            #print("test acc:",test_acc)
+            if epochs_without_improvement == early_stopping:
+                break
             # ========================
 
         return FitResult(actual_num_epochs,
@@ -233,12 +216,15 @@ class BlocksTrainer(Trainer):
         self.optimizer.zero_grad()
 #         print(self.optimizer.params[0][1])
 #        print(self.model.params())
-        pred=self.model.forward(X) #current predictions
+        pred=self.model(X) #current predictions
+#         print(pred)
 #         loss=self.loss_fn.forward(pred,y)
 #         grad=self.loss_fn.backward(loss)
 #         din=self.model.backward(pred)
         loss=self.loss_fn(pred,y)
-        self.loss_fn.backward()
+        grad=self.loss_fn.backward(loss)
+        
+        self.model.backward(grad)
         
 #         print(self.optimizer.params[0][1])
 #         self.model.backward(grad)
@@ -268,7 +254,14 @@ class BlocksTrainer(Trainer):
         # - Forward pass
         # - Calculate number of correct predictions
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        pred=self.model(X)
+        loss=self.loss_fn(pred,y)
+        
+        pred_labels=torch.argmax(pred,dim=1)
+        eq_veq=torch.eq(y,pred_labels)
+        num_correct=torch.sum(eq_veq)
+        
+        
         # ========================
 
         return BatchResult(loss, num_correct)

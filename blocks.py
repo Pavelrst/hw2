@@ -125,10 +125,13 @@ class Linear(Block):
         #   - db, the gradient of the loss with respect to b
         # You should accumulate gradients in dw and db.
         # ====== YOUR CODE: ======
-        dx = torch.mm(dout, self.w)
-        self.dw = torch.t(torch.mm(torch.t(x), dout))
-        self.db = torch.sum(torch.t(dout), dim=1)
-        
+        dw = dout.t() @ x
+        self.dw += dw
+
+        db = dout.sum(0)
+        self.db += db
+
+        dx = dout @ self.w
         
         # ========================
 
@@ -273,15 +276,34 @@ class Dropout(Block):
         # previous blocks, this block behaves differently a according to the
         # current mode (train/test).
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        print("do forward")
+        if self.training_mode:
+            a = torch.empty(1, 1).uniform_(0, 1)
+            if (a>self.p):
+                out=0
+                self.grad_cache['dropout']=0
+            else:
+                out=x
+                self.grad_cache['dropout']=1
+            
         # ========================
 
         return out
 
     def backward(self, dout):
+        print("do backward")
         # TODO: Implement the dropout backward pass.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        if self.training_mode:
+            if(self.grad_cache):
+                print("true")
+                dx=dout
+            else:
+                print("false")
+                dx=0
+        else:
+            print("not in training?")
+            dx = dout/self.p
         # ========================
 
         return dx

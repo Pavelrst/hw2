@@ -75,7 +75,7 @@ class VanillaSGD(Optimizer):
             #dp += self.reg*p*2
 #             print("before")
 #             print(self.params[0])
-            dp += self.reg*p
+            dp+=self.reg*p
             #tmp = dp + self.reg*2*p
             p +=  -self.learn_rate*dp
 #             print("After")
@@ -95,10 +95,19 @@ class MomentumSGD(Optimizer):
         self.learn_rate = learn_rate
         self.reg = reg
         self.momentum = momentum
-
+        
         # TODO: Add your own initializations as needed.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        self.prev_dp={}
+        for p,dp in self.params:
+            if dp is None:
+                continue
+#             print("dp")
+#             print (dp)
+            self.prev_dp[id(dp)]= torch.zeros_like(dp)
+#             print("prev dp")
+#             print (self.prev_dp)
+#             print(id(dp))
         # ========================
 
     def step(self):
@@ -110,7 +119,12 @@ class MomentumSGD(Optimizer):
             # update the parameters tensor based on the velocity. Don't forget
             # to include the regularization term.
             # ====== YOUR CODE: ======
-            raise NotImplementedError()
+#             if(torch.equal(self.prev_dp,torch.zeros_like(dp))):
+#                 dp = -p*self.reg
+#             else:
+            dp = self.momentum*self.prev_dp[id(dp)] - p*self.reg
+            p+= self.learn_rate*dp
+            self.prev_dp[id(dp)]=dp
             # ========================
 
 
@@ -131,7 +145,11 @@ class RMSProp(Optimizer):
 
         # TODO: Add your own initializations as needed.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        self.prev_dp={}
+        for p,dp in self.params:
+            if dp is None:
+                continue
+            self.prev_dp[id(dp)]= torch.zeros_like(dp)
         # ========================
 
     def step(self):
@@ -144,5 +162,7 @@ class RMSProp(Optimizer):
             # average of it's previous gradients. Use it to update the
             # parameters tensor.
             # ====== YOUR CODE: ======
-            raise NotImplementedError()
+            dp = self.decay*self.prev_dp[id(dp)]+(1-self.decay)*p**2
+            p+= - (self.learn_rate/((dp+self.eps))**0.5)*p
+            self.prev_dp[id(dp)]=dp
             # ========================
