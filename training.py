@@ -75,13 +75,25 @@ class Trainer(abc.ABC):
             #   simple regularization technique that is highly recommended.
             # ====== YOUR CODE: ======
             train_res = self.train_epoch(dl_train, **kw)
+            #train_res = self.train_epoch(dl_train, ** kw,verbose=verbose,max_batches=10)
             train_loss.append(torch.stack(train_res.losses).sum().item() / len(dl_train))
-            train_acc.append(train_res.accuracy.item())
+            if isinstance(train_res.accuracy, float):
+                train_acc.append(train_res.accuracy)
+            else:
+                train_acc.append(train_res.accuracy.item())
 
             # Test
+            #test_res = self.test_epoch(dl_test, ** kw,verbose=verbose,max_batches=10)
             test_res = self.test_epoch(dl_test, **kw)
-            test_loss.append(torch.stack(test_res.losses).sum().item() / len(dl_train))
-            test_acc.append(test_res.accuracy.item())
+            if isinstance(test_res.losses, float):
+                test_loss.append(sum(test_res.losses) / len(dl_train))
+            else:
+                test_loss.append(torch.stack(test_res.losses).sum().item() / len(dl_train))
+
+            if isinstance(train_res.accuracy, float):
+                test_acc.append(test_res.accuracy)
+            else:
+                test_acc.append(test_res.accuracy.item())
 
             if best_acc is None or best_acc < test_acc[-1]:
                 best_acc = test_acc[-1]
@@ -283,7 +295,25 @@ class TorchTrainer(Trainer):
         # - Optimize params
         # - Calculate number of correct predictions
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+
+        # zero the parameter gradients
+        self.optimizer.zero_grad()
+
+        # forward + backward + optimize
+        outputs = self.model.forward(X)
+        loss = self.loss_fn(outputs, y)
+        loss.backward()
+        self.optimizer.step()
+
+        softmax = torch.nn.Softmax(1)
+        my_res = softmax(outputs)
+        my_cl = torch.max(my_res,1)[1]
+
+        num_correct = 0
+        for idx in range(my_cl.size(0)):
+            if my_cl[idx] == y[idx]:
+                num_correct+=1
+
         # ========================
 
         return BatchResult(loss, num_correct)
@@ -299,7 +329,16 @@ class TorchTrainer(Trainer):
             # - Forward pass
             # - Calculate number of correct predictions
             # ====== YOUR CODE: ======
-            raise NotImplementedError()
-            # ========================
+            outputs = self.model.forward(X)
+            loss = self.loss_fn(outputs, y)
 
-        return BatchResult(loss, num_correct)
+            softmax = torch.nn.Softmax(1)
+            my_res = softmax(outputs)
+            my_cl = torch.max(my_res, 1)[1]
+
+            num_correct = 0
+            for idx in range(my_cl.size(0)):
+                if my_cl[idx] == y[idx]:
+                    num_correct += 1
+            # ========================
+            return BatchResult(loss, num_correct)
