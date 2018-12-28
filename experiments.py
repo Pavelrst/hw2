@@ -70,7 +70,8 @@ def run_experiment(run_name, out_dir='./results', seed=None,
     #print("create loss function.")
     loss_fn = torch.nn.CrossEntropyLoss()
 
-    #print("create optimzer")
+    #print("create optimzer")save_experiment(run_name, out_dir, cfg, fit_res)
+
     optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
 
     #print("create trainer")
@@ -85,7 +86,7 @@ def run_experiment(run_name, out_dir='./results', seed=None,
     fit_res = trainer.fit(dl_train, dl_test, epochs, None, early_stopping, print_every=1, **kw)
 
     # ========================
-
+    
     save_experiment(run_name, out_dir, cfg, fit_res)
 
 
