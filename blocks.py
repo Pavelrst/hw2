@@ -276,33 +276,27 @@ class Dropout(Block):
         # previous blocks, this block behaves differently a according to the
         # current mode (train/test).
         # ====== YOUR CODE: ======
-        print("do forward")
         if self.training_mode:
-            a = torch.empty(1, 1).uniform_(0, 1)
-            if (a>self.p):
-                out=0
-                self.grad_cache['dropout']=0
-            else:
-                out=x
-                self.grad_cache['dropout']=1
+            probability = torch.full_like(x, self.p)
+            dropout = torch.bernoulli(probability)
+            out = x*dropout
+            
+            self.grad_cache['dropout']= dropout
+            
+        else:
+                out=x/self.p 
             
         # ========================
 
         return out
 
     def backward(self, dout):
-        print("do backward")
         # TODO: Implement the dropout backward pass.
         # ====== YOUR CODE: ======
         if self.training_mode:
-            if(self.grad_cache):
-                print("true")
-                dx=dout
-            else:
-                print("false")
-                dx=0
+            dropout = self.grad_cache['dropout']
+            dx = dropout*dout
         else:
-            print("not in training?")
             dx = dout/self.p
         # ========================
 
