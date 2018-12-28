@@ -37,25 +37,30 @@ class MLP(Block):
         # TODO: Build the MLP architecture as described.
         # ====== YOUR CODE: ======
 
-        # First layer
 
-        # trying without **kw
-        blocks.append(Linear(in_features, hidden_features[0], **kw))
-        blocks.append(ReLU())
-        blocks.append(Dropout(self.dropout)) if self.dropout != 0 else None
 
-        num_of_layers = len(hidden_features) - 1
-        # Iterate over hidden layers only
-        for i in range(num_of_layers):
-            blocks.append(Linear(self.hidden_features[i], self.hidden_features[i+1], **kw))
+
+
+
+
+
+
+
+
+
+        in_block = in_features
+
+        for i, h in enumerate(self.hidden_features):
+            #print('  in_bloc=',in_block, 'h=',h)
+            blocks.append(Linear(in_block,h,**kw))
             blocks.append(ReLU())
-            blocks.append(Dropout(self.dropout)) if self.dropout != 0 else None
-            if i+1 == num_of_layers:
-                break
+            if(self.dropout!=0):
+                blocks.append(Dropout(self.dropout))
+            in_block = h
+        blocks.append(Linear(in_block,num_classes,**kw))
+        
 
-        # Last layer
-        blocks.append(Linear(self.hidden_features[-1], self.num_classes, **kw))
-
+        
         # ========================
 
         self.sequence = Sequential(*blocks)
@@ -79,16 +84,16 @@ class MLP(Block):
 class ConvClassifier(nn.Module):
     """
     A convolutional classifier model based on PyTorch nn.Modules.
-
     The architecture is:
     [(Conv -> ReLU)*P -> MaxPool]*(N/P) -> (Linear -> ReLU)*M -> Linear
     """
+
     def __init__(self, in_size, out_classes, filters, pool_every, hidden_dims):
         """
         :param in_size: Size of input images, e.g. (C,H,W).
         :param out_classes: Number of classes to output in the final layer.
-        :param filters: A list of of length N containing the number of
-            filters in each conv layer.
+        :param filters: .A list of of length N containing the number of
+            filters in each conv layer
         :param pool_every: P, the number of conv layers before each max-pool.
         :param hidden_dims: List of of length M containing hidden dimensions of
             each Linear layer (not including the output layer).
@@ -113,18 +118,64 @@ class ConvClassifier(nn.Module):
         # Pooling to reduce dimensions.
         # ====== YOUR CODE: ======
 
-        conv_size = 3 #by 3
-        max_pool_size = 2 #by 2
+        # TODO: pool_every = P = the number of conv layers before each max-pool
+        N = len(self.filters)  # num of conv layers in total.
+        P = self.pool_every  # num of conv layers before each pooling.
+        N_P = int(N / P)  # num of (Conv -> ReLU)*P -> MaxPool in total.
 
-        for i, filter in enumerate(self.filters):
-            layers.append(nn.Conv2d(in_channels, filter, conv_size, padding=1))
-            in_channels = filter
-            layers.append(nn.ReLU())
-            if (i+1) % self.pool_every == 0:
-                if in_h >= max_pool_size and in_w >= max_pool_size:
-                    layers.append(nn.MaxPool2d(max_pool_size))
-                    in_h = (in_h - 2) / 2 + 1
-                    in_w = (in_w - 2) / 2 + 1
+        # print("N(num of conv layers in total)=",N)
+        # print("P(num of conv layers before each pooling.)=",P)
+        # print("N_P(num of (Conv -> ReLU)*P -> MaxPool)=",N_P)
+        # TODO: iterate over pooling layers
+        # TODO: for each pool, iterate over conv layers for this pool
+        # TODO: add all those layers to layers list.
+
+        # print("input shape(Ch,H,W) = (",in_channels,",",in_h,",",in_w,")")
+
+        # save all dimensions for further usage
+        curr_H_in = in_h
+        curr_W_in = in_w
+        curr_dim = (in_channels, in_h, in_w)
+        dims_list = []
+        dims_list.append(curr_dim)
+
+        filters_list_idx = 0
+        curr_in_channels = in_channels
+        for pool_idx in range(N_P):
+            for conv_idx in range(P):
+                kernel_size = 3  # 3x3
+                stride = 1
+                padding = 1
+                dilation = 1
+
+                # calc dimension of output tensor
+                out_channels = self.filters[filters_list_idx]  # as num of filters
+                H_out = int((curr_H_in + 2 * padding - dilation * (kernel_size - 1) - 1) / stride) + 1
+                W_out = int((curr_W_in + 2 * padding - dilation * (kernel_size - 1) - 1) / stride) + 1
+                curr_dim = (out_channels, H_out, W_out)
+                dims_list.append(curr_dim)
+                curr_H_in = H_out
+                curr_W_in = W_out
+
+                # Conv2d(in_channels, out_channels, kernel_size, stride=1, padding=0, ...)
+                conv = nn.Conv2d(curr_in_channels, out_channels, kernel_size, stride, padding)
+                # print("adding conv layer. in channels = ",curr_in_channels," out dim = ",curr_dim)
+                curr_in_channels = out_channels
+                layers.append(conv)
+                # print("adding RELU layer")
+                layers.append(nn.ReLU())
+                filters_list_idx += 1
+
+            H_out = int(H_out / 2)
+            W_out = int(W_out / 2)
+            curr_dim = (out_channels, H_out, W_out)
+            dims_list.append(curr_dim)
+            curr_H_in = H_out
+            curr_W_in = W_out
+            # print("adding Maxpool layer. out dim = ",curr_dim)
+            pool = nn.MaxPool2d(kernel_size=2, stride=2)
+            layers.append(pool)
+        self.dim_list = dims_list
 
         # ========================
         seq = nn.Sequential(*layers)
@@ -139,23 +190,18 @@ class ConvClassifier(nn.Module):
         # You'll need to calculate the number of features first.
         # The last Linear layer should have an output dimension of out_classes.
         # ====== YOUR CODE: ======
-        num_of_pools = int(len(self.filters) / self.pool_every)
-        print("num of pools: ", num_of_pools)
-        for i in range(num_of_pools):
-            if in_w == 1 or in_h == 1:
-                break
-            in_h = (in_h - 2) / 2 + 1
-            in_w = (in_w - 2) / 2 + 1
 
+        # TODO: calc in features
+        ch, h, w = self.dim_list[-1]
+        in_features = ch * h * w
+        # print("in fetures of classifier is",in_features)
 
-        in_features = self.filters[-1] * in_w * in_h
-        print("in_h: {}, in_w: {}, in_features: {}".format(in_h, in_w, in_features))
-        for layer in self.hidden_dims:
-            layers.append(nn.Linear(int(in_features), layer))
+        layers.append(nn.Linear(in_features, self.hidden_dims[0]))
+        layers.append(nn.ReLU())
+        for curr_dim_idx in range(len(self.hidden_dims) - 1):
+            layers.append(nn.Linear(self.hidden_dims[curr_dim_idx], self.hidden_dims[curr_dim_idx + 1]))
             layers.append(nn.ReLU())
-            in_features = layer
-        layers.append(nn.Linear(in_features, self.out_classes))
-
+        layers.append(nn.Linear(self.hidden_dims[-1], self.out_classes))
         # ========================
         seq = nn.Sequential(*layers)
         return seq
@@ -165,11 +211,12 @@ class ConvClassifier(nn.Module):
         # Extract features from the input, run the classifier on them and
         # return class scores.
         # ====== YOUR CODE: ======
-
+        # print("x shape =",x.size())
         features = self.feature_extractor(x)
-        features = features.reshape(features.shape[0], -1)
+        # print("features shape =", features.size())
+        features = features.view(features.size(0), -1)
+        # print("features shape =", features.size())
         out = self.classifier(features)
-
         # ========================
         return out
 
@@ -183,70 +230,6 @@ class YourCodeNet(ConvClassifier):
     # For example, add batchnorm, dropout, skip connections, change conv
     # filter sizes etc.
     # ====== YOUR CODE: ======
-
-    new_size = lambda conv_result: conv_result if conv_result >= 1 else 1
-    conv_new_size = lambda size_in, padding, kernel_size, stride: (size_in + 2 * padding - (kernel_size - 1) - 1) / 2
-
-    def _make_feature_extractor(self):
-        in_channels, in_h, in_w, = tuple(self.in_size)
-
-        self.in_h = in_h
-        self.in_w = in_w
-        layers = []
-
-        conv_size = 3 #by 3
-        avg_pool_size = 4 #by 2
-
-        # stride 2 stride 1 same out as in
-        layers.append(nn.Conv2d(in_channels, 32, conv_size, stride=1, padding=1, bias=False))
-        in_channels = 32
-        layers.append(nn.BatchNorm2d(in_channels))
-        layers.append(nn.ReLU())
-
-        for i, filter in enumerate(self.filters):
-
-            # stride 2 stride 1 same out as in
-            layers.append(nn.Conv2d(in_channels, in_channels, conv_size, stride=1, groups=in_channels, padding=1, bias=False))
-            self.in_h = int((self.in_h + 2 - (conv_size - 1) - 1) / 1) + 1
-            self.in_w = int((self.in_w + 2 - (conv_size - 1) - 1) / 1) + 1
-
-            layers.append(nn.BatchNorm2d(in_channels))
-            layers.append(nn.ReLU())
-
-            layers.append(nn.Conv2d(in_channels, filter, 1, stride=1, padding=0, bias=False))
-            layers.append(nn.BatchNorm2d(filter))
-            layers.append(nn.ReLU())
-
-            in_channels = filter
-
-        if self.in_h >= 2 and self.in_w >= 2:
-            layers.append(nn.AvgPool2d(avg_pool_size))
-            self.in_h = int((self.in_h - 2) / avg_pool_size) + 1
-            self.in_w = int((self.in_w - 2) / avg_pool_size) + 1
-
-        if self.in_h < 1:
-            self.in_h = 1
-        if self.in_w < 1:
-            self.in_w = 1
-
-        seq = nn.Sequential(*layers)
-        return seq
-
-    def _make_classifier(self):
-
-        layers = []
-
-        in_features = self.filters[-1] * self.in_w * self.in_h
-        for layer in self.hidden_dims:
-            layers.append(nn.Linear(int(in_features), layer))
-            layers.append(nn.ReLU())
-            # layers.append(nn.Dropout())
-            in_features = layer
-        layers.append(nn.Linear(in_features, self.out_classes))
-
-        # ========================
-        seq = nn.Sequential(*layers)
-        return seq
-
+    #raise NotImplementedError()
     # ========================
 
