@@ -144,9 +144,9 @@ class ConvClassifier(nn.Module):
         for pool_idx in range(N_P):
             for conv_idx in range(P):
                 kernel_size = 3  # 3x3
-                stride = 1
-                padding = 1
-                dilation = 1
+                padding = 1 #1
+                stride = 1 #1
+                dilation = 1 # never change it!
 
                 # calc dimension of output tensor
                 out_channels = self.filters[filters_list_idx]  # as num of filters
@@ -166,17 +166,19 @@ class ConvClassifier(nn.Module):
                 layers.append(nn.ReLU())
                 filters_list_idx += 1
 
+
             H_out = int(H_out / 2)
             W_out = int(W_out / 2)
+
             curr_dim = (out_channels, H_out, W_out)
             dims_list.append(curr_dim)
             curr_H_in = H_out
             curr_W_in = W_out
-            # print("adding Maxpool layer. out dim = ",curr_dim)
+            # print("adding Maxpool layer. calculated out dim = ",curr_dim)
             pool = nn.MaxPool2d(kernel_size=2, stride=2)
             layers.append(pool)
         self.dim_list = dims_list
-
+        #print("self.dim_list=",self.dim_list)
         # ========================
         seq = nn.Sequential(*layers)
         return seq
@@ -194,7 +196,7 @@ class ConvClassifier(nn.Module):
         # TODO: calc in features
         ch, h, w = self.dim_list[-1]
         in_features = ch * h * w
-        # print("in fetures of classifier is",in_features)
+        # print("calculated in fetures of classifier is",in_features)
 
         layers.append(nn.Linear(in_features, self.hidden_dims[0]))
         layers.append(nn.ReLU())
@@ -211,11 +213,11 @@ class ConvClassifier(nn.Module):
         # Extract features from the input, run the classifier on them and
         # return class scores.
         # ====== YOUR CODE: ======
-        # print("x shape =",x.size())
+        #print("actual x shape =",x.size())
         features = self.feature_extractor(x)
-        # print("features shape =", features.size())
+        #print("actual features shape =", features.size())
         features = features.view(features.size(0), -1)
-        # print("features shape =", features.size())
+        #print("actual features shape =", features.size())
         out = self.classifier(features)
         # ========================
         return out
@@ -230,6 +232,69 @@ class YourCodeNet(ConvClassifier):
     # For example, add batchnorm, dropout, skip connections, change conv
     # filter sizes etc.
     # ====== YOUR CODE: ======
-    #raise NotImplementedError()
-    # ========================
+    def _make_feature_extractor(self):
+        in_channels, in_h, in_w, = tuple(self.in_size)
 
+        layers = []
+        N = len(self.filters)  # num of conv layers in total.
+        P = self.pool_every  # num of conv layers before each pooling.
+        N_P = int(N / P)  # num of (Conv -> ReLU)*P -> MaxPool in total
+        curr_H_in = in_h
+        curr_W_in = in_w
+        curr_dim = (in_channels, in_h, in_w)
+        dims_list = []
+        dims_list.append(curr_dim)
+
+        filters_list_idx = 0
+        curr_in_channels = in_channels
+        for pool_idx in range(N_P):
+            for conv_idx in range(P):
+                kernel_size = 3  # 3x3
+
+                # TODO: play with those.
+                padding = 1
+                stride = 1
+                dilation = 1 # never change it.
+
+                # calc dimension of output tensor
+                out_channels = self.filters[filters_list_idx]  # as num of filters
+                H_out = int((curr_H_in + 2 * padding - dilation * (kernel_size - 1) - 1) / stride) + 1
+                W_out = int((curr_W_in + 2 * padding - dilation * (kernel_size - 1) - 1) / stride) + 1
+                curr_dim = (out_channels, H_out, W_out)
+                dims_list.append(curr_dim)
+                curr_H_in = H_out
+                curr_W_in = W_out
+
+                conv = nn.Conv2d(curr_in_channels, out_channels, kernel_size, stride, padding)
+                curr_in_channels = out_channels
+                layers.append(conv)
+                layers.append(nn.ReLU())
+                filters_list_idx += 1
+
+            H_out = int(H_out / 2)
+            W_out = int(W_out / 2)
+            curr_dim = (out_channels, H_out, W_out)
+            dims_list.append(curr_dim)
+            curr_H_in = H_out
+            curr_W_in = W_out
+            pool = nn.MaxPool2d(kernel_size=2, stride=2)
+            layers.append(pool)
+        self.dim_list = dims_list
+
+        # ========================
+        seq = nn.Sequential(*layers)
+        return seq
+        # ========================
+
+    def forward(self, x):
+        # TODO: Normilize th input.
+
+        features = self.feature_extractor(x)
+
+        features = features.view(features.size(0), -1)
+
+        normilized_features = torch.nn.functional.normalize(features,p=2)
+
+        out = self.classifier(normilized_features)
+
+        return out
