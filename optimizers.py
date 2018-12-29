@@ -98,16 +98,11 @@ class MomentumSGD(Optimizer):
         
         # TODO: Add your own initializations as needed.
         # ====== YOUR CODE: ======
-        self.prev_dp={}
-        for p,dp in self.params:
+        self.vt = {}
+        for p, dp in self.params:
             if dp is None:
                 continue
-#             print("dp")
-#             print (dp)
-            self.prev_dp[id(dp)]= torch.zeros_like(dp)
-#             print("prev dp")
-#             print (self.prev_dp)
-#             print(id(dp))
+            self.vt[id(dp)] = torch.zeros_like(dp)
         # ========================
 
     def step(self):
@@ -119,12 +114,8 @@ class MomentumSGD(Optimizer):
             # update the parameters tensor based on the velocity. Don't forget
             # to include the regularization term.
             # ====== YOUR CODE: ======
-#             if(torch.equal(self.prev_dp,torch.zeros_like(dp))):
-#                 dp = -p*self.reg
-#             else:
-            dp = self.momentum*self.prev_dp[id(dp)] - p*self.reg
-            p+= self.learn_rate*dp
-            self.prev_dp[id(dp)]=dp
+            self.vt[id(dp)] = self.momentum * self.vt[id(dp)] - self.learn_rate * (dp + self.reg * p)
+            p += self.vt[id(dp)]
             # ========================
 
 
@@ -145,11 +136,12 @@ class RMSProp(Optimizer):
 
         # TODO: Add your own initializations as needed.
         # ====== YOUR CODE: ======
-        self.prev_dp={}
-        for p,dp in self.params:
+        self.RMS = {}
+        for p, dp in self.params:
             if dp is None:
                 continue
-            self.prev_dp[id(dp)]= torch.zeros_like(dp)
+
+            self.RMS[id(dp)] = torch.zeros_like(dp)
         # ========================
 
     def step(self):
@@ -162,7 +154,11 @@ class RMSProp(Optimizer):
             # average of it's previous gradients. Use it to update the
             # parameters tensor.
             # ====== YOUR CODE: ======
-            dp = self.decay*self.prev_dp[id(dp)]+(1-self.decay)*p**2
-            p+= - (self.learn_rate/((dp+self.eps))**0.5)*p
-            self.prev_dp[id(dp)]=dp
+            reg_grad = dp + self.reg * p
+
+            tmp = self.decay * self.RMS[id(dp)] + (1 - self.decay) * (reg_grad ** 2)
+
+            self.RMS[id(dp)] = tmp
+
+            p -= (self.learn_rate / torch.sqrt(self.eps + tmp)) * reg_grad
             # ========================
