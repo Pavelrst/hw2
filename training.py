@@ -57,8 +57,6 @@ class Trainer(abc.ABC):
 
         best_acc = None
         epochs_without_improvement = 0
-        import math
-        prev_loss = math.inf
 
         for epoch in range(num_epochs):
             verbose = False  # pass this to train/test_epoch.
