@@ -72,10 +72,12 @@ def run_experiment(run_name, out_dir='./results', seed=None,
 
     #print("create optimzer")save_experiment(run_name, out_dir, cfg, fit_res)
 
-    optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
+    #optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
+    optimizer = torch.optim.Adadelta(model.parameters())
 
     #print("create trainer")
     trainer = training.TorchTrainer(model, loss_fn, optimizer)
+
 
     #print("create dataloaders")
     train_sampler = torch.utils.data.sampler.RandomSampler(data_source=ds_train)
