@@ -73,7 +73,7 @@ class Trainer(abc.ABC):
             #   simple regularization technique that is highly recommended.
             # ====== YOUR CODE: ======
             train_res = self.train_epoch(dl_train, **kw)
-            #train_res = self.train_epoch(dl_train, ** kw,verbose=verbose,max_batches=10)
+            #train_res = self.train_epoch(dl_train, ** kw,verbose=verbose,max_batches=100)
             train_loss.append(torch.stack(train_res.losses).sum().item() / len(dl_train))
             if isinstance(train_res.accuracy, float):
                 train_acc.append(train_res.accuracy)
@@ -81,7 +81,7 @@ class Trainer(abc.ABC):
                 train_acc.append(train_res.accuracy.item())
 
             # Test
-            #test_res = self.test_epoch(dl_test, ** kw,verbose=verbose,max_batches=10)
+            #test_res = self.test_epoch(dl_test, ** kw,verbose=verbose,max_batches=500)
             test_res = self.test_epoch(dl_test, **kw)
             if isinstance(test_res.losses, float):
                 test_loss.append(sum(test_res.losses) / len(dl_train))
