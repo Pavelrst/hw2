@@ -252,8 +252,8 @@ class YourCodeNet(ConvClassifier):
                 kernel_size = 3  # 3x3
 
                 # TODO: play with those.
-                padding = 1
-                stride = 1
+                padding = 0 #1
+                stride = 1 #1
                 dilation = 1 # never change it.
 
                 # calc dimension of output tensor
