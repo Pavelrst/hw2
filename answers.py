@@ -82,55 +82,47 @@ So in this this example the loss has increase but also the accuracy.**
 # Part 3 answers
 
 part3_q1 = r"""
-**Your answer:**
+Generaly adding more conv layers help us find more features. As the features are more specific,
+we can classify a given sample more accurately.  
+Adding too much layers, will cause ovefitting as a result of finding irregularities in the samples and "mark" them 
+as features.
 
-
-Write your answer using **markdown** and $\LaTeX$:
-```python
-# A code block
-a = 2
-```
-An equation: $e^{i\pi} -1 = 0$
+Yes, some models weren't trainable. L values 2 and 16 made the model not trainable. 
+Too deep convolution network also involves many pooling layers which downsample the features.
+If the features are downsampled too much we lose too much information, thus the samples can't 
+be classified properly. 
+We could solve it by using less pooling layers, but this will cause too many neurons
+int the input layers of the classifier, which increase training time.
+   
+Too shallow conv network (L=2) doesn't produce features which are "good enough".
+i.e it finds features which are common to most of the samples anyway.
 
 """
 
 part3_q2 = r"""
-**Your answer:**
-
-
-Write your answer using **markdown** and $\LaTeX$:
-```python
-# A code block
-a = 2
-```
-An equation: $e^{i\pi} -1 = 0$
+We can clearly see that deeper conv net produce more features, thus our 
+samples can be classified more precisely. More filters it have, more features
+it produces. 
+Of course we should be able to see same results for same configurations.
 
 """
 
 part3_q3 = r"""
-**Your answer:**
-
-
-Write your answer using **markdown** and $\LaTeX$:
-```python
-# A code block
-a = 2
-```
-An equation: $e^{i\pi} -1 = 0$
+We can see that deeper conv nets tend to overfit faster, as a result of finding 
+irregularities in the samples.
 
 """
 
 
 part3_q4 = r"""
-**Your answer:**
+- Batch normalization added.
+In experiment 1 we saw an overfitting problem for K64-128-256 conv net.
+Normilizing the samples before injecting them to classifier solved the problem.
+Unfortunately we could not perform experiments on all required configurations,
+But still we can see better performance.
 
-
-Write your answer using **markdown** and $\LaTeX$:
-```python
-# A code block
-a = 2
-```
-An equation: $e^{i\pi} -1 = 0$
-
+- Padding disabled. 
+Disabling paddings cause less number of features injected to classifier.
+We guess this has minor influence on accuracy, but slightly shorter training time.
 """
 # ==============
